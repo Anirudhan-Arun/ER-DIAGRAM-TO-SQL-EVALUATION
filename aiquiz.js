@@ -13,7 +13,7 @@
   /* >>>>>> PASTE YOUR API KEY BETWEEN THE QUOTES BELOW <<<<<< */
   const BUILT_IN_KEY = "AQ.Ab8RN6LTp-l1yYzQba4JgdokxbW4IcUomW0SYTlk-J7KWRBuYw";
   const PROVIDER = "gemini";            // "gemini" or "claude"
-  const MODEL = "gemini-2.5-flash";     // for claude use e.g. "claude-haiku-5-5"
+  const MODEL = "gemini-3.8-flash";     // for claude use e.g. "claude-haiku-5-5"
   const MAX_QUESTIONS = 15;
 
   try {
