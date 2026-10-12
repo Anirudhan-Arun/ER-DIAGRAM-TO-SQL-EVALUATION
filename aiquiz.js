@@ -116,11 +116,13 @@
       const url =
         "https://generativelanguage.googleapis.com/v1beta/models/" +
         encodeURIComponent(MODEL) +
-        ":generateContent?key=" +
-        encodeURIComponent(BUILT_IN_KEY);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+           ":generateContent";
+            const res = await fetch(url, {
+            method: "POST",
+            headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": BUILT_IN_KEY
+            },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" }
