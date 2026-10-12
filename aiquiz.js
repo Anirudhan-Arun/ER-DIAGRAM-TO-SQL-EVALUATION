@@ -317,3 +317,81 @@
     console.warn("AI quiz could not load:", e);
   }
 })();
+
+
+/* =========================================================
+   PART 2 - PAGE FIXES (independent of the AI quiz above)
+
+   1. Makes sure only ONE page (Dashboard / Learn / Quiz /
+      Competitive Exams / Developed By / Help) is visible.
+   2. Removes the word "adapted" / "inspired" from the exam
+      tags in the Competitive Exams question bank.
+   Does not edit quiz.js.
+   ========================================================= */
+(function () {
+  try {
+    const nav = document.querySelector(".main-nav");
+    if (!nav) return;
+
+    function allViews() {
+      return Array.from(document.querySelectorAll(".view"));
+    }
+    function navButtons() {
+      return Array.from(nav.querySelectorAll(".nav-btn"));
+    }
+
+    function viewForButton(btn) {
+      const label = btn.textContent.trim();
+      if (btn.dataset && btn.dataset.view) {
+        const v = document.getElementById(btn.dataset.view);
+        if (v) return v;
+      }
+      if (label === "Competitive Exams") return document.getElementById("examView");
+      if (label === "Quiz") {
+        const qc = document.getElementById("quizContainer");
+        return qc ? qc.closest(".view") : null;
+      }
+      return null;
+    }
+
+    function showOnly(targetView, targetBtn) {
+      if (!targetView) return;
+      allViews().forEach((v) => {
+        v.classList.toggle("active-view", v === targetView);
+        v.style.display = "";
+      });
+      navButtons().forEach((b) => b.classList.toggle("active", b === targetBtn));
+    }
+
+    /* after any tab click, force exactly one page to show */
+    nav.addEventListener("click", function (e) {
+      const btn = e.target.closest(".nav-btn");
+      if (!btn) return;
+      setTimeout(function () {
+        showOnly(viewForButton(btn), btn);
+      }, 0);
+    });
+
+    /* on load: if more than one page is showing, fall back to Dashboard */
+    const active = allViews().filter((v) => v.classList.contains("active-view"));
+    if (active.length > 1) {
+      const dash = document.getElementById("dashboardView");
+      const dashBtn = navButtons().find((b) => b.textContent.trim() === "Dashboard");
+      showOnly(dash, dashBtn);
+    }
+
+    /* ---------- remove "adapted" / "inspired" from exam tags ---------- */
+    function cleanTags() {
+      document.querySelectorAll(".quiz-exam-tag").forEach((el) => {
+        const text = el.textContent;
+        if (/\b(adapted|inspired)\b/i.test(text)) {
+          el.textContent = text.replace(/\s*\b(adapted|inspired)\b/gi, "").trim();
+        }
+      });
+    }
+    cleanTags();
+    new MutationObserver(cleanTags).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {
+    console.warn("Page fixes could not load:", e);
+  }
+})();
