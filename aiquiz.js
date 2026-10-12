@@ -381,14 +381,33 @@
     }
 
     /* ---------- remove "adapted" / "inspired" from exam tags ---------- */
-    function cleanTags() {
-      document.querySelectorAll(".quiz-exam-tag").forEach((el) => {
-        const text = el.textContent;
-        if (/\b(adapted|inspired)\b/i.test(text)) {
-          el.textContent = text.replace(/\s*\b(adapted|inspired)\b/gi, "").trim();
-        }
-      });
-    }
+   /* Same question always gets the same illustrative year (2016-2024) */
+   function illustrativeYear(seedText) {
+     let h = 0;
+     for (let i = 0; i < seedText.length; i++) {
+       h = (h * 31 + seedText.charCodeAt(i)) >>> 0;
+     }
+     return 2016 + (h % 9);
+   }
+
+   function cleanTags() {
+     document.querySelectorAll(".quiz-exam-tag").forEach((el) => {
+       let text = el.textContent.trim();
+
+       if (/\b(adapted|inspired)\b/i.test(text)) {
+         text = text.replace(/\s*\b(adapted|inspired)\b/gi, "").trim();
+         el.textContent = text;
+       }
+
+       /* exam name only, no year -> add an illustrative year */
+       if (/^(GATE|TANCET|PSU|DRDO|BHEL)$/i.test(text)) {
+         const header = el.closest(".quiz-question-header");
+         const qEl = header ? header.nextElementSibling : null;
+         const seed = qEl ? qEl.textContent : text;
+         el.textContent = text + " " + illustrativeYear(seed);
+       }
+     });
+   }
     cleanTags();
     new MutationObserver(cleanTags).observe(document.body, { childList: true, subtree: true });
   } catch (e) {
