@@ -10,10 +10,16 @@
    - Competitive Exams question bank is NOT touched.
    ========================================================= */
 (function () {
-  /* >>>>>> PASTE YOUR API KEY BETWEEN THE QUOTES BELOW <<<<<< */
-  const BUILT_IN_KEY = "AQ.Ab8RN6J3RIv8flN5wc1H1QYf3_fs4qvTwvNFnzUkR832J5CVcQ";
-  const PROVIDER = "gemini";            // "gemini" or "claude"
-  const MODEL = "gemini-3.5-flash-lite";     // for claude use e.g. "claude-haiku-5-5"
+  /* >>>>>> PASTE YOUR CLOUDFLARE WORKER ADDRESS BETWEEN THE QUOTES <<<<<<
+     Example: "https://quiz-ai.yourname.workers.dev"
+     The API key lives on Cloudflare, NOT in this file, so GitHub can
+     never leak it and Google can never disable it for being public. */
+  const WORKER_URL = "https://quizai.anirudhan-arun2025.workers.dev";
+
+  /* Only used if WORKER_URL is left empty (not recommended) */
+  const BUILT_IN_KEY = "";
+  const PROVIDER = "gemini";
+  const MODEL = "gemini-3.5-flash-lite";
   const MAX_QUESTIONS = 15;
 
   try {
@@ -92,7 +98,20 @@
       );
     }
 
+    const USE_WORKER = WORKER_URL && WORKER_URL !== "PASTE_WORKER_URL_HERE";
+
     async function callAI(prompt) {
+      if (USE_WORKER) {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ prompt: prompt })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "AI error " + res.status);
+        return data.text;
+      }
+
       if (PROVIDER === "claude") {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -116,13 +135,13 @@
       const url =
         "https://generativelanguage.googleapis.com/v1beta/models/" +
         encodeURIComponent(MODEL) +
-           ":generateContent";
-            const res = await fetch(url, {
-            method: "POST",
-            headers: {
-            "content-type": "application/json",
-            "x-goog-api-key": BUILT_IN_KEY
-            },
+        ":generateContent";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": BUILT_IN_KEY
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" }
@@ -273,9 +292,9 @@
 
     /* ---------- start button: AI replaces the old question pool ---------- */
     async function startAIQuiz() {
-      if (!BUILT_IN_KEY || BUILT_IN_KEY === "PASTE_YOUR_KEY_HERE") {
+      if (!USE_WORKER && !BUILT_IN_KEY) {
         container.innerHTML =
-          '<div class="empty-state">The AI key has not been set. Open aiquiz.js and paste your key in BUILT_IN_KEY.</div>';
+          '<div class="empty-state">The AI is not set up yet. Open aiquiz.js and paste your Worker address in WORKER_URL.</div>';
         return;
       }
 
@@ -383,33 +402,33 @@
     }
 
     /* ---------- remove "adapted" / "inspired" from exam tags ---------- */
-   /* Same question always gets the same illustrative year (2016-2024) */
-   function illustrativeYear(seedText) {
-     let h = 0;
-     for (let i = 0; i < seedText.length; i++) {
-       h = (h * 31 + seedText.charCodeAt(i)) >>> 0;
-     }
-     return 2016 + (h % 9);
-   }
+    /* Same question always gets the same illustrative year (2016-2024) */
+    function illustrativeYear(seedText) {
+      let h = 0;
+      for (let i = 0; i < seedText.length; i++) {
+        h = (h * 31 + seedText.charCodeAt(i)) >>> 0;
+      }
+      return 2016 + (h % 9);
+    }
 
-   function cleanTags() {
-     document.querySelectorAll(".quiz-exam-tag").forEach((el) => {
-       let text = el.textContent.trim();
+    function cleanTags() {
+      document.querySelectorAll(".quiz-exam-tag").forEach((el) => {
+        let text = el.textContent.trim();
 
-       if (/\b(adapted|inspired)\b/i.test(text)) {
-         text = text.replace(/\s*\b(adapted|inspired)\b/gi, "").trim();
-         el.textContent = text;
-       }
+        if (/\b(adapted|inspired)\b/i.test(text)) {
+          text = text.replace(/\s*\b(adapted|inspired)\b/gi, "").trim();
+          el.textContent = text;
+        }
 
-       /* exam name only, no year -> add an illustrative year */
-       if (/^(GATE|TANCET|PSU|DRDO|BHEL)$/i.test(text)) {
-         const header = el.closest(".quiz-question-header");
-         const qEl = header ? header.nextElementSibling : null;
-         const seed = qEl ? qEl.textContent : text;
-         el.textContent = text + " " + illustrativeYear(seed);
-       }
-     });
-   }
+        /* exam name only, no year -> add an illustrative year */
+        if (/^(GATE|TANCET|PSU|DRDO|BHEL)$/i.test(text)) {
+          const header = el.closest(".quiz-question-header");
+          const qEl = header ? header.nextElementSibling : null;
+          const seed = qEl ? qEl.textContent : text;
+          el.textContent = text + " " + illustrativeYear(seed);
+        }
+      });
+    }
     cleanTags();
     new MutationObserver(cleanTags).observe(document.body, { childList: true, subtree: true });
   } catch (e) {
